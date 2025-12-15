@@ -15,7 +15,18 @@ export function createServerClient() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Missing Supabase server environment variables');
+    console.error('Missing Supabase server environment variables');
+    // Return a placeholder client that will fail gracefully
+    return createClient(
+      supabaseUrl || 'https://placeholder.supabase.co',
+      serviceRoleKey || 'placeholder-key',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
   }
 
   return createClient(supabaseUrl, serviceRoleKey, {

@@ -19,11 +19,21 @@ export default function MenuPage() {
     try {
       const response = await fetch('/api/menu');
       const data = await response.json();
-      setMenuItems(data);
-      const uniqueCategories = ['All', ...new Set(data.map((item: MenuItem) => item.category))];
-      setCategories(uniqueCategories as string[]);
+      
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setMenuItems(data);
+        const uniqueCategories = ['All', ...new Set(data.map((item: MenuItem) => item.category))];
+        setCategories(uniqueCategories as string[]);
+      } else {
+        console.error('Menu API returned non-array data:', data);
+        setMenuItems([]);
+        setCategories(['All']);
+      }
     } catch (error) {
       console.error('Failed to fetch menu:', error);
+      setMenuItems([]);
+      setCategories(['All']);
     } finally {
       setLoading(false);
     }

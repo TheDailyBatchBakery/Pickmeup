@@ -15,10 +15,14 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching menu:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch menu' },
-        { status: 500 }
-      );
+      // Return empty array instead of error object to prevent frontend crashes
+      return NextResponse.json([]);
+    }
+
+    // Handle case where data might be null
+    if (!data || !Array.isArray(data)) {
+      console.warn('Menu data is not an array:', data);
+      return NextResponse.json([]);
     }
 
     // Transform database records to MenuItem format
@@ -34,9 +38,7 @@ export async function GET() {
     return NextResponse.json(menuItems);
   } catch (error) {
     console.error('Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    // Return empty array instead of error object
+    return NextResponse.json([]);
   }
 }
