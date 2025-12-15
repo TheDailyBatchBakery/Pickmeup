@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Order } from '@/types';
 import OrderList from '@/components/admin/OrderList';
 
@@ -70,7 +71,17 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <h1 className="text-4xl font-bold text-gray-900 mb-8">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
+        <div className="flex gap-4">
+          <Link
+            href="/admin/products"
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Manage Products
+          </Link>
+        </div>
+      </div>
 
       <div className="mb-6 flex gap-2 overflow-x-auto pb-2">
         {Object.entries(statusCounts).map(([status, count]) => (

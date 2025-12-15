@@ -1,74 +1,42 @@
 import { NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase';
 import { MenuItem } from '@/types';
 
-// Sample menu data - in production, this would come from a database
-const menuItems: MenuItem[] = [
-  {
-    id: '1',
-    name: 'Classic Burger',
-    description: 'Juicy beef patty with lettuce, tomato, onion, and special sauce',
-    price: 12.99,
-    category: 'Burgers',
-  },
-  {
-    id: '2',
-    name: 'Cheeseburger',
-    description: 'Classic burger with melted cheese',
-    price: 13.99,
-    category: 'Burgers',
-  },
-  {
-    id: '3',
-    name: 'Bacon Burger',
-    description: 'Burger topped with crispy bacon and cheddar cheese',
-    price: 15.99,
-    category: 'Burgers',
-  },
-  {
-    id: '4',
-    name: 'Chicken Sandwich',
-    description: 'Grilled chicken breast with mayo and pickles',
-    price: 11.99,
-    category: 'Sandwiches',
-  },
-  {
-    id: '5',
-    name: 'French Fries',
-    description: 'Crispy golden fries, perfectly seasoned',
-    price: 4.99,
-    category: 'Sides',
-  },
-  {
-    id: '6',
-    name: 'Onion Rings',
-    description: 'Beer-battered onion rings',
-    price: 5.99,
-    category: 'Sides',
-  },
-  {
-    id: '7',
-    name: 'Caesar Salad',
-    description: 'Fresh romaine lettuce with Caesar dressing and croutons',
-    price: 9.99,
-    category: 'Salads',
-  },
-  {
-    id: '8',
-    name: 'Soft Drink',
-    description: 'Coca-Cola, Sprite, or Dr. Pepper',
-    price: 2.99,
-    category: 'Beverages',
-  },
-  {
-    id: '9',
-    name: 'Iced Tea',
-    description: 'Freshly brewed iced tea',
-    price: 2.99,
-    category: 'Beverages',
-  },
-];
-
 export async function GET() {
-  return NextResponse.json(menuItems);
-}
+  try {
+    const supabase = createServerClient();
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_available', true)
+      .order('category', { ascending: true })
+      .order('name', { ascending: true });
 
+    if (error) {
+      console.error('Error fetching menu:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch menu' },
+        { status: 500 }
+      );
+    }
+
+    // Transform database records to MenuItem format
+    const menuItems: MenuItem[] = data.map((product) => ({
+      id: product.id,
+      name: product.name,
+      description: product.description || '',
+      price: parseFloat(product.price),
+      category: product.category,
+      image: product.image_url || undefined,
+    }));
+
+    return NextResponse.json(menuItems);
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
