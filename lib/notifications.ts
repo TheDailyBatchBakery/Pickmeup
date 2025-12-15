@@ -3,10 +3,13 @@ import { Order } from '@/types';
 import { config } from './config';
 import { formatCurrency } from './utils';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend only if API key is available (prevents build errors)
+const resend = process.env.RESEND_API_KEY 
+  ? new Resend(process.env.RESEND_API_KEY)
+  : null;
 
 export async function sendOrderConfirmationEmail(order: Order) {
-  if (!process.env.RESEND_API_KEY) {
+  if (!resend || !process.env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY not set, skipping email notification');
     return;
   }
@@ -15,7 +18,7 @@ export async function sendOrderConfirmationEmail(order: Order) {
     const { data, error } = await resend.emails.send({
       from: `${config.notifications.fromName} <${config.notifications.fromEmail}>`,
       to: order.email,
-      replyTo: config.notifications.replyTo,
+      reply_to: config.notifications.replyTo,
       subject: `Order Confirmation - ${order.id.slice(0, 8)}`,
       html: generateOrderEmailHTML(order),
     });
@@ -110,8 +113,9 @@ export async function sendOrderConfirmationSMS(order: Order) {
   }
 
   try {
-    const twilio = require('twilio');
-    const client = twilio(
+    // Dynamic import to avoid build-time errors if Twilio isn't configured
+    const twilio = await import('twilio');
+    const client = twilio.default(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN
     );
