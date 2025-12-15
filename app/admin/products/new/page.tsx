@@ -96,7 +96,10 @@ export default function NewProductPage() {
         router.push('/admin/products');
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to create product');
+        const errorMessage = error.details 
+          ? `${error.error}: ${error.details}`
+          : error.error || 'Failed to create product';
+        alert(errorMessage);
       }
     } catch (error) {
       console.error('Error creating product:', error);

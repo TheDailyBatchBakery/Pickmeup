@@ -43,6 +43,17 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if Supabase is configured
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      return NextResponse.json(
+        { 
+          error: 'Database not configured',
+          details: 'Supabase environment variables are missing. Please configure Supabase in your Netlify settings.'
+        },
+        { status: 500 }
+      );
+    }
+
     const supabase = createServerClient();
 
     const { data, error } = await supabase
@@ -60,8 +71,12 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('Error creating product:', error);
+      // Return more detailed error message
       return NextResponse.json(
-        { error: 'Failed to create product' },
+        { 
+          error: 'Failed to create product',
+          details: error.message || 'Database connection failed. Please check Supabase configuration.'
+        },
         { status: 500 }
       );
     }
