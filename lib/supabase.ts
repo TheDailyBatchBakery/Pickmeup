@@ -3,8 +3,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Only create client if we have the required variables (for build time)
-// This prevents build errors when env vars aren't set
+// Client-side Supabase client (for use in client components)
+// Only create client if we have the required variables
 export const supabase: SupabaseClient = 
   supabaseUrl && supabaseAnonKey
     ? createClient(supabaseUrl, supabaseAnonKey)
