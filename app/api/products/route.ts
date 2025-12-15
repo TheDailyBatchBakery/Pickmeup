@@ -13,19 +13,21 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching products:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch products' },
-        { status: 500 }
-      );
+      // Return empty array instead of error object
+      return NextResponse.json([]);
+    }
+
+    // Handle case where data might be null
+    if (!data || !Array.isArray(data)) {
+      console.warn('Products data is not an array:', data);
+      return NextResponse.json([]);
     }
 
     return NextResponse.json(data);
   } catch (error) {
     console.error('Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    // Return empty array instead of error object
+    return NextResponse.json([]);
   }
 }
 
