@@ -20,11 +20,14 @@ export default function MenuPage() {
       const response = await fetch('/api/menu');
       const data = await response.json();
       
+      console.log('Menu API response:', data); // Debug log
+      
       // Ensure data is an array
       if (Array.isArray(data)) {
         setMenuItems(data);
         const uniqueCategories = ['All', ...new Set(data.map((item: MenuItem) => item.category))];
         setCategories(uniqueCategories as string[]);
+        console.log('Menu items loaded:', data.length); // Debug log
       } else {
         console.error('Menu API returned non-array data:', data);
         setMenuItems([]);
@@ -74,11 +77,22 @@ export default function MenuPage() {
 
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <div className="grid md:grid-cols-2 gap-6">
-            {filteredItems.map((item) => (
-              <MenuItemComponent key={item.id} item={item} />
-            ))}
-          </div>
+          {filteredItems.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <p className="text-gray-500 text-lg mb-4">No menu items available</p>
+              <p className="text-gray-400 text-sm">
+                {menuItems.length === 0 
+                  ? "Products haven't been added yet. Check back soon!"
+                  : "No items in this category."}
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6">
+              {filteredItems.map((item) => (
+                <MenuItemComponent key={item.id} item={item} />
+              ))}
+            </div>
+          )}
         </div>
         <div className="lg:col-span-1">
           <div className="sticky top-4">

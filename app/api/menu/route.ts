@@ -25,6 +25,8 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
+    console.log(`Menu API: Found ${data.length} available products`); // Debug log
+
     // Transform database records to MenuItem format
     const menuItems: MenuItem[] = data.map((product) => ({
       id: product.id,
