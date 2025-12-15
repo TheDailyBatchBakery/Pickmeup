@@ -31,10 +31,14 @@ export async function GET() {
 
     if (error) {
       console.error('Error fetching orders:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch orders' },
-        { status: 500 }
-      );
+      // Return empty array instead of error object
+      return NextResponse.json([]);
+    }
+
+    // Handle case where orders might be null
+    if (!orders || !Array.isArray(orders)) {
+      console.warn('Orders data is not an array:', orders);
+      return NextResponse.json([]);
     }
 
     // Transform to Order format
@@ -61,10 +65,8 @@ export async function GET() {
     return NextResponse.json(transformedOrders);
   } catch (error) {
     console.error('Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    // Return empty array instead of error object
+    return NextResponse.json([]);
   }
 }
 

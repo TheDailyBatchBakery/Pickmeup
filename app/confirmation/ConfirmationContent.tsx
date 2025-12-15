@@ -25,10 +25,18 @@ export default function ConfirmationContent() {
     try {
       const response = await fetch('/api/orders');
       const orders = await response.json();
-      const foundOrder = orders.find((o: Order) => o.id === orderId);
-      setOrder(foundOrder || null);
+      
+      // Ensure orders is an array
+      if (Array.isArray(orders)) {
+        const foundOrder = orders.find((o: Order) => o.id === orderId);
+        setOrder(foundOrder || null);
+      } else {
+        console.error('Orders API returned non-array data:', orders);
+        setOrder(null);
+      }
     } catch (error) {
       console.error('Failed to fetch order:', error);
+      setOrder(null);
     } finally {
       setLoading(false);
     }

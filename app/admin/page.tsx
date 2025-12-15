@@ -21,9 +21,17 @@ export default function AdminPage() {
     try {
       const response = await fetch('/api/orders');
       const data = await response.json();
-      setOrders(data);
+      
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setOrders(data);
+      } else {
+        console.error('Orders API returned non-array data:', data);
+        setOrders([]);
+      }
     } catch (error) {
       console.error('Failed to fetch orders:', error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
