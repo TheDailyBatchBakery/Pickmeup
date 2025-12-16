@@ -91,19 +91,20 @@ export async function GET() {
 // Helper function to get settings
 async function getSettings(supabase: ReturnType<typeof createServerClient>): Promise<Settings | null> {
   try {
-    const { data: notificationsData } = await supabase
+    const { data: notificationsData, error: notificationsError } = await supabase
       .from('settings')
       .select('value')
       .eq('key', 'notifications')
       .single();
 
-    const { data: emailSmsData } = await supabase
+    const { data: emailSmsData, error: emailSmsError } = await supabase
       .from('settings')
       .select('value')
       .eq('key', 'email_sms')
       .single();
 
-    if (!notificationsData || !emailSmsData) {
+    // If table doesn't exist or settings not found, return null (will use defaults)
+    if (notificationsError || emailSmsError || !notificationsData || !emailSmsData) {
       return null;
     }
 
@@ -111,7 +112,12 @@ async function getSettings(supabase: ReturnType<typeof createServerClient>): Pro
       notifications: notificationsData.value as any,
       email_sms: emailSmsData.value as any,
     };
-  } catch (error) {
+  } catch (error: any) {
+    // Handle case where settings table doesn't exist
+    if (error?.code === '42P01' || error?.message?.includes('does not exist')) {
+      console.warn('Settings table does not exist yet');
+      return null;
+    }
     console.error('Error fetching settings:', error);
     return null;
   }
@@ -186,27 +192,46 @@ export async function POST(request: Request) {
 
     const orderNumber = generateOrderNumber();
 
-    // Create order
-    const { data: order, error: orderError } = await supabase
+    // Create order - try with notification_preference first, fallback without it if column doesn't exist
+    let orderInsert: any = {
+      order_number: orderNumber,
+      customer_name: customerInfo.name,
+      email: customerInfo.email,
+      phone: customerInfo.phone,
+      zip_code: customerInfo.zipCode,
+      total: total.toFixed(2),
+      pickup_time: pickupTime,
+      status: 'pending',
+    };
+
+    // Try to add notification_preference if provided
+    if (notificationPreference) {
+      orderInsert.notification_preference = notificationPreference;
+    }
+
+    let { data: order, error: orderError } = await supabase
       .from('orders')
-      .insert({
-        order_number: orderNumber,
-        customer_name: customerInfo.name,
-        email: customerInfo.email,
-        phone: customerInfo.phone,
-        zip_code: customerInfo.zipCode,
-        total: total.toFixed(2),
-        pickup_time: pickupTime,
-        status: 'pending',
-        notification_preference: notificationPreference || 'email',
-      })
+      .insert(orderInsert)
       .select()
       .single();
+
+    // If error is due to missing column, retry without notification_preference
+    if (orderError && (orderError.code === '42703' || orderError.message?.includes('column') || orderError.message?.includes('does not exist'))) {
+      console.warn('notification_preference column does not exist, creating order without it');
+      const { notification_preference, ...orderWithoutPref } = orderInsert;
+      const retryResult = await supabase
+        .from('orders')
+        .insert(orderWithoutPref)
+        .select()
+        .single();
+      order = retryResult.data;
+      orderError = retryResult.error;
+    }
 
     if (orderError) {
       console.error('Error creating order:', orderError);
       return NextResponse.json(
-        { error: 'Failed to create order' },
+        { error: 'Failed to create order', details: orderError.message },
         { status: 500 }
       );
     }

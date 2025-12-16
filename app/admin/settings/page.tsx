@@ -215,24 +215,22 @@ export default function AdminSettingsPage() {
           {settings.notifications.reminderEnabled && (
             <div className="border-b pb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Reminder Timing: {settings.notifications.reminderMinutes} minutes before pickup
+                Reminder Timing
               </label>
-              <input
-                type="range"
-                min="5"
-                max="30"
-                step="5"
+              <select
                 value={settings.notifications.reminderMinutes}
                 onChange={(e) =>
                   updateNotificationSetting('reminderMinutes', parseInt(e.target.value))
                 }
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>5 min</span>
-                <span>15 min</span>
-                <span>30 min</span>
-              </div>
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="5">5 minutes before pickup</option>
+                <option value="10">10 minutes before pickup</option>
+                <option value="15">15 minutes before pickup</option>
+                <option value="20">20 minutes before pickup</option>
+                <option value="25">25 minutes before pickup</option>
+                <option value="30">30 minutes before pickup</option>
+              </select>
             </div>
           )}
 
