@@ -21,6 +21,7 @@ export interface Order {
   total: number;
   pickupTime: string;
   status: 'pending' | 'confirmed' | 'ready' | 'completed' | 'cancelled';
+  notification_preference?: 'email' | 'sms' | 'both';
   createdAt: string;
 }
 
@@ -29,5 +30,24 @@ export interface CustomerInfo {
   email: string;
   phone: string;
   zipCode: string;
+  notificationPreference?: 'email' | 'sms' | 'both';
+}
+
+export interface NotificationSettings {
+  statusChangeEnabled: boolean;
+  reminderEnabled: boolean;
+  reminderMinutes: number;
+  reminderMethod: 'simple' | 'polling' | 'manual';
+}
+
+export interface EmailSMSSettings {
+  adminEmails: string[];
+  adminPhones: string[];
+  customerPreferenceTiming: 'pre-order' | 'post-order';
+}
+
+export interface Settings {
+  notifications: NotificationSettings;
+  email_sms: EmailSMSSettings;
 }
 

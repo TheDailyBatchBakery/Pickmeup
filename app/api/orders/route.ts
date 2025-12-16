@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
-import { sendOrderConfirmationEmail, sendOrderConfirmationSMS } from '@/lib/notifications';
-import { Order } from '@/types';
+import {
+  sendOrderConfirmationEmail,
+  sendOrderConfirmationSMS,
+  sendStatusChangeEmail,
+  sendStatusChangeSMS,
+  sendAdminOrderEmail,
+  sendAdminOrderSMS,
+  sendReminderEmail,
+  sendReminderSMS,
+} from '@/lib/notifications';
+import { Order, Settings } from '@/types';
 
 // Generate order number
 function generateOrderNumber(): string {
@@ -59,8 +68,17 @@ export async function GET() {
       total: parseFloat(order.total),
       pickupTime: order.pickup_time,
       status: order.status,
+      notification_preference: order.notification_preference || 'email',
       createdAt: order.created_at,
     }));
+
+    // Check for reminder notifications if enabled (simple method)
+    if (process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true' || process.env.ENABLE_SMS_NOTIFICATIONS === 'true') {
+      const settings = await getSettings(createServerClient());
+      if (settings?.notifications?.reminderEnabled && settings.notifications.reminderMethod === 'simple') {
+        checkAndSendReminders(transformedOrders, settings.notifications.reminderMinutes).catch(console.error);
+      }
+    }
 
     return NextResponse.json(transformedOrders);
   } catch (error) {
@@ -70,10 +88,83 @@ export async function GET() {
   }
 }
 
+// Helper function to get settings
+async function getSettings(supabase: ReturnType<typeof createServerClient>): Promise<Settings | null> {
+  try {
+    const { data: notificationsData } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'notifications')
+      .single();
+
+    const { data: emailSmsData } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'email_sms')
+      .single();
+
+    if (!notificationsData || !emailSmsData) {
+      return null;
+    }
+
+    return {
+      notifications: notificationsData.value as any,
+      email_sms: emailSmsData.value as any,
+    };
+  } catch (error) {
+    console.error('Error fetching settings:', error);
+    return null;
+  }
+}
+
+// Helper function to check and send reminders
+async function checkAndSendReminders(orders: Order[], reminderMinutes: number) {
+  const now = new Date();
+
+  for (const order of orders) {
+    if (order.status !== 'pending' && order.status !== 'confirmed') continue;
+
+    try {
+      // Parse pickup time (format: "h:mm a")
+      const [timePart, period] = order.pickupTime.split(' ');
+      const [hours, minutes] = timePart.split(':').map(Number);
+      let pickupHour = hours;
+      if (period === 'PM' && hours !== 12) pickupHour += 12;
+      if (period === 'AM' && hours === 12) pickupHour = 0;
+
+      const pickupDate = new Date();
+      pickupDate.setHours(pickupHour, minutes, 0, 0);
+
+      // Check if pickup time is within reminder window
+      const timeDiff = pickupDate.getTime() - now.getTime();
+      const minutesUntilPickup = timeDiff / 60000;
+
+      if (minutesUntilPickup > 0 && minutesUntilPickup <= reminderMinutes + 5) {
+        // Check if we haven't sent reminder yet (in a real app, track this in DB)
+        const pref = order.notification_preference || 'email';
+        
+        if (pref === 'email' || pref === 'both') {
+          if (process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true') {
+            sendReminderEmail(order).catch(console.error);
+          }
+        }
+        
+        if (pref === 'sms' || pref === 'both') {
+          if (process.env.ENABLE_SMS_NOTIFICATIONS === 'true') {
+            sendReminderSMS(order).catch(console.error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error checking reminder for order', order.id, error);
+    }
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { customerInfo, items, pickupTime } = body;
+    const { customerInfo, items, pickupTime, notificationPreference } = body;
 
     // Validate required fields
     if (!customerInfo || !items || !pickupTime) {
@@ -84,6 +175,7 @@ export async function POST(request: Request) {
     }
 
     const supabase = createServerClient();
+    const settings = await getSettings(supabase);
 
     // Calculate total
     const total = items.reduce(
@@ -106,6 +198,7 @@ export async function POST(request: Request) {
         total: total.toFixed(2),
         pickup_time: pickupTime,
         status: 'pending',
+        notification_preference: notificationPreference || 'email',
       })
       .select()
       .single();
@@ -181,16 +274,36 @@ export async function POST(request: Request) {
       total: parseFloat(order.total),
       pickupTime: order.pickup_time,
       status: order.status,
+      notification_preference: order.notification_preference || 'email',
       createdAt: order.created_at,
     };
 
-    // Send notifications (async, don't wait for them)
-    if (process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true') {
-      sendOrderConfirmationEmail(transformedOrder).catch(console.error);
+    // Send customer notifications based on preference (async, don't wait for them)
+    const pref = transformedOrder.notification_preference || 'email';
+    if (pref === 'email' || pref === 'both') {
+      if (process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true') {
+        sendOrderConfirmationEmail(transformedOrder).catch(console.error);
+      }
     }
     
-    if (process.env.ENABLE_SMS_NOTIFICATIONS === 'true') {
-      sendOrderConfirmationSMS(transformedOrder).catch(console.error);
+    if (pref === 'sms' || pref === 'both') {
+      if (process.env.ENABLE_SMS_NOTIFICATIONS === 'true') {
+        sendOrderConfirmationSMS(transformedOrder).catch(console.error);
+      }
+    }
+
+    // Send admin notifications (async, don't wait for them)
+    if (settings?.email_sms) {
+      const adminEmails = settings.email_sms.adminEmails || [];
+      const adminPhones = settings.email_sms.adminPhones || [];
+      
+      if (adminEmails.length > 0 && process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true') {
+        sendAdminOrderEmail(transformedOrder, adminEmails).catch(console.error);
+      }
+      
+      if (adminPhones.length > 0 && process.env.ENABLE_SMS_NOTIFICATIONS === 'true') {
+        sendAdminOrderSMS(transformedOrder, adminPhones).catch(console.error);
+      }
     }
 
     return NextResponse.json(transformedOrder, { status: 201 });
@@ -216,6 +329,16 @@ export async function PATCH(request: Request) {
     }
 
     const supabase = createServerClient();
+    const settings = await getSettings(supabase);
+
+    // Get current order to check status change
+    const { data: currentOrder } = await supabase
+      .from('orders')
+      .select('status')
+      .eq('id', orderId)
+      .single();
+
+    const oldStatus = currentOrder?.status;
 
     const { data, error } = await supabase
       .from('orders')
@@ -264,8 +387,26 @@ export async function PATCH(request: Request) {
       total: parseFloat(data.total),
       pickupTime: data.pickup_time,
       status: data.status,
+      notification_preference: data.notification_preference || 'email',
       createdAt: data.created_at,
     };
+
+    // Send status change notifications if status changed and enabled
+    if (oldStatus && oldStatus !== status && settings?.notifications?.statusChangeEnabled) {
+      const pref = transformedOrder.notification_preference || 'email';
+      
+      if (pref === 'email' || pref === 'both') {
+        if (process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true') {
+          sendStatusChangeEmail(transformedOrder, oldStatus, status).catch(console.error);
+        }
+      }
+      
+      if (pref === 'sms' || pref === 'both') {
+        if (process.env.ENABLE_SMS_NOTIFICATIONS === 'true') {
+          sendStatusChangeSMS(transformedOrder, status).catch(console.error);
+        }
+      }
+    }
 
     return NextResponse.json(transformedOrder);
   } catch (error) {

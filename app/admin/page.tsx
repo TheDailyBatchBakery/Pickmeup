@@ -2,20 +2,43 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Order } from '@/types';
+import { Order, Settings } from '@/types';
 import OrderList from '@/components/admin/OrderList';
 
 export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [settings, setSettings] = useState<Settings | null>(null);
 
   useEffect(() => {
     fetchOrders();
+    fetchSettings();
     // Poll for new orders every 5 seconds
     const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // Polling for reminders if enabled
+  useEffect(() => {
+    if (settings?.notifications?.reminderEnabled && settings.notifications.reminderMethod === 'polling') {
+      // Poll every 2 minutes to check for reminders
+      const reminderInterval = setInterval(() => {
+        fetchOrders(); // This will trigger reminder checks in the API
+      }, 120000); // 2 minutes
+      return () => clearInterval(reminderInterval);
+    }
+  }, [settings]);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings');
+      const data = await response.json();
+      setSettings(data);
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+    }
+  };
 
   const fetchOrders = async () => {
     try {
@@ -87,6 +110,12 @@ export default function AdminPage() {
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             Manage Products
+          </Link>
+          <Link
+            href="/admin/settings"
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Settings
           </Link>
         </div>
       </div>

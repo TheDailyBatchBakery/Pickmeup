@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Order } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import Button from '@/components/ui/Button';
@@ -61,7 +62,7 @@ export default function OrderCard({ order, onStatusUpdate }: OrderCardProps) {
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      <div className="flex gap-2 flex-wrap items-center">
         {statusOptions.map((status) => (
           <Button
             key={status}
@@ -73,6 +74,11 @@ export default function OrderCard({ order, onStatusUpdate }: OrderCardProps) {
             {status}
           </Button>
         ))}
+        <Link href={`/admin/orders/${order.id}`}>
+          <Button variant="outline" size="sm">
+            View Details
+          </Button>
+        </Link>
       </div>
     </div>
   );

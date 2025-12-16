@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/lib/store';
 import Input from '@/components/ui/Input';
@@ -8,14 +8,17 @@ import Button from '@/components/ui/Button';
 import PickupTimeSelector from '@/components/customer/PickupTimeSelector';
 import { isValidZipCode } from '@/lib/utils';
 import { formatCurrency } from '@/lib/utils';
+import { Settings } from '@/types';
 
 export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((state) => state.items);
   const customerInfo = useCartStore((state) => state.customerInfo);
   const pickupTime = useCartStore((state) => state.pickupTime);
+  const notificationPreference = useCartStore((state) => state.notificationPreference);
   const setCustomerInfo = useCartStore((state) => state.setCustomerInfo);
   const setPickupTime = useCartStore((state) => state.setPickupTime);
+  const setNotificationPreference = useCartStore((state) => state.setNotificationPreference);
   const getTotal = useCartStore((state) => state.getTotal);
   const clearCart = useCartStore((state) => state.clearCart);
 
@@ -26,8 +29,17 @@ export default function CheckoutPage() {
     zipCode: customerInfo?.zipCode || '',
   });
 
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    // Fetch settings to check customer preference timing
+    fetch('/api/settings')
+      .then((res) => res.json())
+      .then((data) => setSettings(data))
+      .catch(console.error);
+  }, []);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -93,6 +105,7 @@ export default function CheckoutPage() {
           customerInfo,
           items,
           pickupTime,
+          notificationPreference,
         }),
       });
 
@@ -183,6 +196,50 @@ export default function CheckoutPage() {
             <PickupTimeSelector />
             {errors.pickupTime && (
               <p className="text-sm text-red-600">{errors.pickupTime}</p>
+            )}
+
+            {/* Notification Preference - Show based on admin setting */}
+            {(!settings || settings.email_sms.customerPreferenceTiming === 'pre-order') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  How would you like to receive order updates?
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="notificationPreference"
+                      value="email"
+                      checked={notificationPreference === 'email'}
+                      onChange={(e) => setNotificationPreference(e.target.value as 'email' | 'sms' | 'both')}
+                      className="mr-2"
+                    />
+                    Email
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="notificationPreference"
+                      value="sms"
+                      checked={notificationPreference === 'sms'}
+                      onChange={(e) => setNotificationPreference(e.target.value as 'email' | 'sms' | 'both')}
+                      className="mr-2"
+                    />
+                    SMS
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="notificationPreference"
+                      value="both"
+                      checked={notificationPreference === 'both'}
+                      onChange={(e) => setNotificationPreference(e.target.value as 'email' | 'sms' | 'both')}
+                      className="mr-2"
+                    />
+                    Both
+                  </label>
+                </div>
+              </div>
             )}
 
             <Button

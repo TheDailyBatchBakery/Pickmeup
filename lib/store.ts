@@ -8,12 +8,14 @@ interface CartStore {
   items: CartItem[];
   customerInfo: CustomerInfo | null;
   pickupTime: string | null;
+  notificationPreference: 'email' | 'sms' | 'both';
   addItem: (item: CartItem) => void;
   removeItem: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   setCustomerInfo: (info: CustomerInfo) => void;
   setPickupTime: (time: string) => void;
+  setNotificationPreference: (pref: 'email' | 'sms' | 'both') => void;
   getTotal: () => number;
   getItemCount: () => number;
 }
@@ -24,6 +26,7 @@ export const useCartStore = create<CartStore>()(
       items: [],
       customerInfo: null,
       pickupTime: null,
+      notificationPreference: 'email' as 'email' | 'sms' | 'both',
       addItem: (item) => {
         const existingItem = get().items.find((i) => i.id === item.id);
         if (existingItem) {
@@ -53,13 +56,16 @@ export const useCartStore = create<CartStore>()(
         }
       },
       clearCart: () => {
-        set({ items: [], customerInfo: null, pickupTime: null });
+        set({ items: [], customerInfo: null, pickupTime: null, notificationPreference: 'email' });
       },
       setCustomerInfo: (info) => {
         set({ customerInfo: info });
       },
       setPickupTime: (time) => {
         set({ pickupTime: time });
+      },
+      setNotificationPreference: (pref) => {
+        set({ notificationPreference: pref });
       },
       getTotal: () => {
         return get().items.reduce(
