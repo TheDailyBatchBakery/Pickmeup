@@ -201,6 +201,18 @@ function formatFromEmail(fromEmail?: string, fromName?: string): string {
     console.error('❌ FROM_EMAIL is invalid:', trimmedEmail);
     throw new Error(`Invalid FROM_EMAIL format: "${trimmedEmail}". Must be a valid email address like "noreply@yourdomain.com"`);
   }
+
+  // Check if trying to use Gmail/Yahoo/etc (not allowed by Resend)
+  const domain = trimmedEmail.split('@')[1]?.toLowerCase();
+  const publicEmailDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com'];
+  if (domain && publicEmailDomains.includes(domain)) {
+    console.error('❌ Cannot use public email domain:', domain);
+    throw new Error(
+      `Resend does not allow sending from public email domains like ${domain}. ` +
+      `You must use your own verified domain (e.g., noreply@yourdomain.com) or Resend's test domain (e.g., onboarding@resend.dev). ` +
+      `Please update FROM_EMAIL in Netlify environment variables.`
+    );
+  }
   
   // Format: "Name <email@domain.com>" or just "email@domain.com"
   if (name && name.trim()) {

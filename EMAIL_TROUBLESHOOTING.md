@@ -33,6 +33,16 @@
 ### Issue: "Email notifications disabled"
 **Solution:** Set `ENABLE_EMAIL_NOTIFICATIONS=true` in Netlify (must be lowercase "true")
 
+### Issue: "The gmail.com domain is not verified" or similar
+**Solution:** 
+- **You cannot use Gmail, Yahoo, or other public email addresses as FROM_EMAIL**
+- Resend only allows sending from:
+  1. **Your own verified domain** (e.g., `noreply@yourdomain.com`)
+  2. **Resend's test domain** (e.g., `onboarding@resend.dev` - for testing only)
+- To fix:
+  - Option A: Use your verified domain: Set `FROM_EMAIL=noreply@yourdomain.com` (your verified domain)
+  - Option B: Use Resend test domain: Set `FROM_EMAIL=onboarding@resend.dev` (check Resend dashboard for exact test email)
+
 ### Issue: "Resend API error" with domain verification error
 **Solution:** 
 - Verify your domain in Resend dashboard
