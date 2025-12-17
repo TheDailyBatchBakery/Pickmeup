@@ -1,6 +1,6 @@
 # Pickmeup - Pickup-Only Order System
 
-A modern Next.js 14 application for managing pickup-only food orders.
+A modern Next.js 14 application for managing pickup-only food orders with email and SMS notifications.
 
 ## Features
 
