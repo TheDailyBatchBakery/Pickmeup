@@ -20,16 +20,22 @@ export async function sendOrderConfirmationEmail(order: Order) {
   }
 
   try {
+    // Validate and format the 'from' field properly
+    const fromField = formatFromEmail(config.notifications.fromEmail, config.notifications.fromName);
+    const fromEmail = config.notifications.fromEmail || process.env.FROM_EMAIL;
+
     const emailData = {
-      from: `${config.notifications.fromName} <${config.notifications.fromEmail}>`,
+      from: fromField,
       to: order.email,
-      reply_to: config.notifications.replyTo,
+      reply_to: config.notifications.replyTo || process.env.REPLY_TO_EMAIL || fromEmail,
       subject: `Order Confirmation - ${order.id.slice(0, 8)}`,
       html: generateOrderEmailHTML(order),
     };
 
     console.log('Attempting to send email to:', order.email);
-    console.log('From:', emailData.from);
+    console.log('From field:', emailData.from);
+    console.log('From email:', fromEmail);
+    console.log('From name:', config.notifications.fromName || process.env.FROM_NAME);
 
     const { data, error } = await resend.emails.send(emailData);
 
@@ -166,6 +172,21 @@ export async function sendOrderConfirmationSMS(order: Order) {
   }
 }
 
+// Helper function to format the 'from' field properly
+function formatFromEmail(fromEmail?: string, fromName?: string): string {
+  const email = fromEmail || process.env.FROM_EMAIL || 'noreply@pickmeup.com';
+  const name = fromName || process.env.FROM_NAME;
+  
+  if (!email || !email.includes('@')) {
+    throw new Error('Invalid FROM_EMAIL: must be a valid email address');
+  }
+  
+  // Format: "Name <email@domain.com>" or just "email@domain.com"
+  return name && name.trim() 
+    ? `${name.trim()} <${email.trim()}>`
+    : email.trim();
+}
+
 // Status change notification (email)
 export async function sendStatusChangeEmail(order: Order, oldStatus: string, newStatus: string) {
   if (!resend || !process.env.RESEND_API_KEY) {
@@ -189,13 +210,14 @@ export async function sendStatusChangeEmail(order: Order, oldStatus: string, new
   };
 
   const statusInfo = statusMessages[newStatus];
-  if (!statusInfo) return;
+  if (!statusInfo) return { success: false, error: 'Invalid status' };
 
   try {
+    const fromField = formatFromEmail(config.notifications.fromEmail, config.notifications.fromName);
     const { data, error } = await resend.emails.send({
-      from: `${config.notifications.fromName} <${config.notifications.fromEmail}>`,
+      from: fromField,
       to: order.email,
-      reply_to: config.notifications.replyTo,
+      reply_to: config.notifications.replyTo || process.env.REPLY_TO_EMAIL || fromField,
       subject: statusInfo.subject,
       html: generateStatusChangeEmailHTML(order, newStatus, statusInfo.message),
     });
@@ -258,8 +280,9 @@ export async function sendAdminOrderEmail(order: Order, adminEmails: string[]) {
   }
 
   try {
+    const fromField = formatFromEmail(config.notifications.fromEmail, config.notifications.fromName);
     const { data, error } = await resend.emails.send({
-      from: `${config.notifications.fromName} <${config.notifications.fromEmail}>`,
+      from: fromField,
       to: adminEmails,
       reply_to: order.email,
       subject: `New Order Received - ${order.id.slice(0, 8)}`,
@@ -319,10 +342,11 @@ export async function sendReminderEmail(order: Order) {
   }
 
   try {
+    const fromField = formatFromEmail(config.notifications.fromEmail, config.notifications.fromName);
     const { data, error } = await resend.emails.send({
-      from: `${config.notifications.fromName} <${config.notifications.fromEmail}>`,
+      from: fromField,
       to: order.email,
-      reply_to: config.notifications.replyTo,
+      reply_to: config.notifications.replyTo || process.env.REPLY_TO_EMAIL || fromField,
       subject: `Reminder: Order Ready Soon - ${order.id.slice(0, 8)}`,
       html: generateReminderEmailHTML(order),
     });

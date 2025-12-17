@@ -305,9 +305,15 @@ export async function POST(request: Request) {
 
     // Send customer notifications based on preference (async, don't wait for them)
     const pref = transformedOrder.notification_preference || 'email';
+    console.log('=== EMAIL NOTIFICATION DEBUG ===');
     console.log('Notification preference:', pref);
     console.log('ENABLE_EMAIL_NOTIFICATIONS:', process.env.ENABLE_EMAIL_NOTIFICATIONS);
+    console.log('ENABLE_EMAIL_NOTIFICATIONS type:', typeof process.env.ENABLE_EMAIL_NOTIFICATIONS);
+    console.log('ENABLE_EMAIL_NOTIFICATIONS === "true":', process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true');
     console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+    console.log('FROM_EMAIL:', process.env.FROM_EMAIL);
+    console.log('FROM_NAME:', process.env.FROM_NAME);
+    console.log('================================');
     
     if (pref === 'email' || pref === 'both') {
       if (process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true') {
