@@ -29,17 +29,45 @@ export default function CheckoutPage() {
     zipCode: customerInfo?.zipCode || '',
   });
 
+  // Update form when customerInfo changes
+  useEffect(() => {
+    if (customerInfo) {
+      setFormData({
+        name: customerInfo.name || '',
+        email: customerInfo.email || '',
+        phone: customerInfo.phone || '',
+        zipCode: customerInfo.zipCode || '',
+      });
+    }
+  }, [customerInfo]);
+
   const [settings, setSettings] = useState<Settings | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // Check if user needs to verify (no email or phone)
+    if (!customerInfo?.email && !customerInfo?.phone) {
+      router.push('/verify');
+      return;
+    }
+
+    // Pre-fill form with verified info
+    if (customerInfo) {
+      setFormData({
+        name: customerInfo.name || '',
+        email: customerInfo.email || '',
+        phone: customerInfo.phone || '',
+        zipCode: customerInfo.zipCode || '',
+      });
+    }
+
     // Fetch settings to check customer preference timing
     fetch('/api/settings')
       .then((res) => res.json())
       .then((data) => setSettings(data))
       .catch(console.error);
-  }, []);
+  }, [customerInfo, router]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -144,6 +172,16 @@ export default function CheckoutPage() {
 
       <div className="grid lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-lg shadow-md p-6">
+          {(customerInfo?.email || customerInfo?.phone) && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>✓ Verified:</strong> {customerInfo?.email ? `Email: ${customerInfo.email}` : customerInfo?.phone ? `Phone: ${customerInfo.phone}` : ''}
+              </p>
+              <p className="text-xs text-blue-600 mt-1">
+                Please review and complete your information below.
+              </p>
+            </div>
+          )}
           <h2 className="text-2xl font-semibold mb-6">Customer Information</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
@@ -157,28 +195,42 @@ export default function CheckoutPage() {
               required
             />
 
-            <Input
-              label="Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              error={errors.email}
-              required
-            />
+            <div>
+              <Input
+                label="Email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                error={errors.email}
+                required
+                disabled={!!customerInfo?.email}
+                className={customerInfo?.email ? 'bg-gray-50' : ''}
+              />
+              {customerInfo?.email && (
+                <p className="text-xs text-gray-500 mt-1">✓ Email verified - cannot be changed</p>
+              )}
+            </div>
 
-            <Input
-              label="Phone"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
-              error={errors.phone}
-              placeholder="(555) 123-4567"
-              required
-            />
+            <div>
+              <Input
+                label="Phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                error={errors.phone}
+                placeholder="(555) 123-4567"
+                required
+                disabled={!!customerInfo?.phone && !customerInfo?.email}
+                className={customerInfo?.phone && !customerInfo?.email ? 'bg-gray-50' : ''}
+              />
+              {customerInfo?.phone && !customerInfo?.email && (
+                <p className="text-xs text-gray-500 mt-1">✓ Phone verified - cannot be changed</p>
+              )}
+            </div>
 
             <Input
               label="ZIP Code"

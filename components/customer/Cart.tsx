@@ -74,7 +74,7 @@ export default function Cart() {
             {formatCurrency(getTotal())}
           </span>
         </div>
-        <Link href="/checkout">
+        <Link href="/verify">
           <Button className="w-full" size="lg">
             Proceed to Checkout
           </Button>
