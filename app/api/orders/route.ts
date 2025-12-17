@@ -307,7 +307,17 @@ export async function POST(request: Request) {
     const pref = transformedOrder.notification_preference || 'email';
     if (pref === 'email' || pref === 'both') {
       if (process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true') {
-        sendOrderConfirmationEmail(transformedOrder).catch(console.error);
+        sendOrderConfirmationEmail(transformedOrder)
+          .then((result) => {
+            if (result && !result.success) {
+              console.error('Email notification failed:', result.error);
+            }
+          })
+          .catch((error) => {
+            console.error('Email notification error:', error);
+          });
+      } else {
+        console.warn('Email notifications disabled. Set ENABLE_EMAIL_NOTIFICATIONS=true to enable.');
       }
     }
     
@@ -323,7 +333,15 @@ export async function POST(request: Request) {
       const adminPhones = settings.email_sms.adminPhones || [];
       
       if (adminEmails.length > 0 && process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true') {
-        sendAdminOrderEmail(transformedOrder, adminEmails).catch(console.error);
+        sendAdminOrderEmail(transformedOrder, adminEmails)
+          .then((result) => {
+            if (result && !result.success) {
+              console.error('Admin email notification failed:', result.error);
+            }
+          })
+          .catch((error) => {
+            console.error('Admin email notification error:', error);
+          });
       }
       
       if (adminPhones.length > 0 && process.env.ENABLE_SMS_NOTIFICATIONS === 'true') {

@@ -11,26 +11,36 @@ const resend = process.env.RESEND_API_KEY
 export async function sendOrderConfirmationEmail(order: Order) {
   if (!resend || !process.env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY not set, skipping email notification');
-    return;
+    console.warn('To enable emails, set RESEND_API_KEY and ENABLE_EMAIL_NOTIFICATIONS=true in your environment variables');
+    return { success: false, error: 'RESEND_API_KEY not configured' };
   }
 
   try {
-    const { data, error } = await resend.emails.send({
+    const emailData = {
       from: `${config.notifications.fromName} <${config.notifications.fromEmail}>`,
       to: order.email,
       reply_to: config.notifications.replyTo,
       subject: `Order Confirmation - ${order.id.slice(0, 8)}`,
       html: generateOrderEmailHTML(order),
-    });
+    };
+
+    console.log('Attempting to send email to:', order.email);
+    console.log('From:', emailData.from);
+
+    const { data, error } = await resend.emails.send(emailData);
 
     if (error) {
-      console.error('Error sending email:', error);
-      return;
+      console.error('Resend API error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      return { success: false, error: error.message || 'Unknown Resend error' };
     }
 
-    console.log('Order confirmation email sent:', data);
-  } catch (error) {
+    console.log('Order confirmation email sent successfully:', data);
+    return { success: true, data };
+  } catch (error: any) {
     console.error('Failed to send email:', error);
+    console.error('Error stack:', error?.stack);
+    return { success: false, error: error?.message || 'Unknown error' };
   }
 }
 
@@ -156,7 +166,7 @@ export async function sendOrderConfirmationSMS(order: Order) {
 export async function sendStatusChangeEmail(order: Order, oldStatus: string, newStatus: string) {
   if (!resend || !process.env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY not set, skipping status change email');
-    return;
+    return { success: false, error: 'RESEND_API_KEY not configured' };
   }
 
   const statusMessages: Record<string, { subject: string; message: string }> = {
@@ -188,12 +198,14 @@ export async function sendStatusChangeEmail(order: Order, oldStatus: string, new
 
     if (error) {
       console.error('Error sending status change email:', error);
-      return;
+      return { success: false, error: error.message || 'Unknown Resend error' };
     }
 
     console.log('Status change email sent:', data);
-  } catch (error) {
+    return { success: true, data };
+  } catch (error: any) {
     console.error('Failed to send status change email:', error);
+    return { success: false, error: error?.message || 'Unknown error' };
   }
 }
 
@@ -235,7 +247,10 @@ export async function sendStatusChangeSMS(order: Order, newStatus: string) {
 // Admin notification (email)
 export async function sendAdminOrderEmail(order: Order, adminEmails: string[]) {
   if (!resend || !process.env.RESEND_API_KEY || adminEmails.length === 0) {
-    return;
+    if (!resend || !process.env.RESEND_API_KEY) {
+      console.warn('RESEND_API_KEY not set, skipping admin email notification');
+    }
+    return { success: false, error: 'RESEND_API_KEY not configured or no admin emails' };
   }
 
   try {
@@ -249,12 +264,14 @@ export async function sendAdminOrderEmail(order: Order, adminEmails: string[]) {
 
     if (error) {
       console.error('Error sending admin email:', error);
-      return;
+      return { success: false, error: error.message || 'Unknown Resend error' };
     }
 
     console.log('Admin email sent:', data);
-  } catch (error) {
+    return { success: true, data };
+  } catch (error: any) {
     console.error('Failed to send admin email:', error);
+    return { success: false, error: error?.message || 'Unknown error' };
   }
 }
 
@@ -293,7 +310,8 @@ export async function sendAdminOrderSMS(order: Order, adminPhones: string[]) {
 // Reminder notification (email)
 export async function sendReminderEmail(order: Order) {
   if (!resend || !process.env.RESEND_API_KEY) {
-    return;
+    console.warn('RESEND_API_KEY not set, skipping reminder email');
+    return { success: false, error: 'RESEND_API_KEY not configured' };
   }
 
   try {
@@ -307,12 +325,14 @@ export async function sendReminderEmail(order: Order) {
 
     if (error) {
       console.error('Error sending reminder email:', error);
-      return;
+      return { success: false, error: error.message || 'Unknown Resend error' };
     }
 
     console.log('Reminder email sent:', data);
-  } catch (error) {
+    return { success: true, data };
+  } catch (error: any) {
     console.error('Failed to send reminder email:', error);
+    return { success: false, error: error?.message || 'Unknown error' };
   }
 }
 
