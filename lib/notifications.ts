@@ -175,7 +175,7 @@ export async function sendOrderConfirmationSMS(order: Order) {
 // Helper function to format the 'from' field properly
 function formatFromEmail(fromEmail?: string, fromName?: string): string {
   // Try to get email from various sources
-  const email = fromEmail || process.env.FROM_EMAIL;
+  let email = fromEmail || process.env.FROM_EMAIL;
   const name = fromName || process.env.FROM_NAME;
   
   // Validate email
@@ -186,7 +186,15 @@ function formatFromEmail(fromEmail?: string, fromName?: string): string {
     throw new Error('FROM_EMAIL environment variable is required and must be a valid email address. Please set FROM_EMAIL in Netlify environment variables.');
   }
   
-  const trimmedEmail = email.trim();
+  let trimmedEmail = email.trim();
+  
+  // Fix common issues: remove duplicate .com, extra dots, etc.
+  // Remove duplicate .com.com pattern
+  trimmedEmail = trimmedEmail.replace(/\.com\.com$/i, '.com');
+  // Remove any trailing dots before @
+  trimmedEmail = trimmedEmail.replace(/\.+@/g, '@');
+  // Remove any double dots
+  trimmedEmail = trimmedEmail.replace(/\.\.+/g, '.');
   
   // Basic email validation
   if (!trimmedEmail.includes('@') || trimmedEmail.length < 5) {

@@ -76,22 +76,31 @@ export default function VerifyPage() {
         ? formData.phone.replace(/\D/g, '')
         : '';
 
-      // For now, we'll just store the verified info and proceed
-      // In a production app, you might want to:
-      // 1. Check if user exists in database
-      // 2. Send verification code via email/SMS
-      // 3. Verify the code before proceeding
-      
-      // Store verified contact info (we'll get full info in checkout)
+      // Look up customer info from previous orders
+      let customerData = null;
+      try {
+        const lookupParam = verificationMethod === 'email' 
+          ? `email=${encodeURIComponent(formData.email.trim())}`
+          : `phone=${encodeURIComponent(formattedPhone)}`;
+        
+        const response = await fetch(`/api/customers?${lookupParam}`);
+        const data = await response.json();
+        customerData = data.customer;
+      } catch (error) {
+        console.error('Error looking up customer:', error);
+        // Continue even if lookup fails
+      }
+
+      // Store verified contact info with any found customer data
       const verifiedInfo = {
-        name: '', // Will be filled in checkout
-        email: formData.email.trim(),
-        phone: formattedPhone || formData.phone.trim(),
-        zipCode: '', // Will be filled in checkout
+        name: customerData?.name || '', // Use found name or empty
+        email: verificationMethod === 'email' ? formData.email.trim() : customerData?.email || '',
+        phone: verificationMethod === 'phone' ? formattedPhone : customerData?.phone || formData.phone.trim(),
+        zipCode: customerData?.zipCode || '', // Use found zip or empty
         notificationPreference: 'email' as 'email' | 'sms' | 'both',
       };
 
-      // Set partial customer info (email/phone verified)
+      // Set customer info (with auto-filled data if found)
       setCustomerInfo(verifiedInfo);
 
       // Redirect to checkout
