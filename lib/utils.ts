@@ -12,12 +12,11 @@ export function getAvailablePickupTimes(): string[] {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   
-  const { open, close, orderCutoffMinutes, timeSlotInterval } = config.hours;
+  const { open, orderCutoffMinutes, timeSlotInterval } = config.hours;
   
   // Start from current time + cutoff buffer, or opening time
   const earliestTime = addMinutes(now, orderCutoffMinutes);
   const openTime = setHours(today, open);
-  const closeTime = setHours(today, close);
   
   let startTime = isAfter(earliestTime, openTime) ? earliestTime : openTime;
   
@@ -26,14 +25,19 @@ export function getAvailablePickupTimes(): string[] {
   const roundedMinutes = Math.ceil(minutes / timeSlotInterval) * timeSlotInterval;
   startTime = setMinutes(startTime, roundedMinutes);
   
-  // Generate time slots until closing time
+  // For testing: Generate time slots up to 11:59 PM (allows any hour)
+  const endTime = setMinutes(setHours(today, 23), 59);
+  
   let currentTime = startTime;
-  while (isBefore(currentTime, closeTime) || currentTime.getTime() === closeTime.getTime()) {
+  while (isBefore(currentTime, endTime) || currentTime.getTime() === endTime.getTime()) {
     times.push(format(currentTime, 'h:mm a'));
     currentTime = addMinutes(currentTime, timeSlotInterval);
     
     // Prevent infinite loop
-    if (times.length > 100) break;
+    if (times.length > 200) break;
+    
+    // Stop at 11:59 PM
+    if (currentTime.getHours() >= 23 && currentTime.getMinutes() >= 59) break;
   }
   
   return times;
