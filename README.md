@@ -9,8 +9,11 @@ A modern Next.js 14 application for managing pickup-only food orders.
 - ⏰ Pickup time selector with order cutoff logic (configurable)
 - 📍 ZIP code validation
 - 💳 Checkout with customer information
-- 📧 Order confirmation page with email notifications
-- 📱 SMS notifications (optional)
+- 📧 Order confirmation page with email notifications (Resend)
+- 📱 SMS notifications (optional, Twilio)
+- 🔔 Status change notifications (ready, completed, cancelled)
+- ⏰ Reminder notifications before pickup time
+- ⚙️ Admin-configurable notification settings
 - 👨‍💼 Admin dashboard for order management
 - 🛍️ Admin product management (add, edit, delete products)
 - 🖼️ Image upload for products (Supabase Storage)
