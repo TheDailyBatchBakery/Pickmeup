@@ -305,20 +305,32 @@ export async function POST(request: Request) {
 
     // Send customer notifications based on preference (async, don't wait for them)
     const pref = transformedOrder.notification_preference || 'email';
+    console.log('Notification preference:', pref);
+    console.log('ENABLE_EMAIL_NOTIFICATIONS:', process.env.ENABLE_EMAIL_NOTIFICATIONS);
+    console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+    
     if (pref === 'email' || pref === 'both') {
       if (process.env.ENABLE_EMAIL_NOTIFICATIONS === 'true') {
+        console.log('Attempting to send email notification...');
         sendOrderConfirmationEmail(transformedOrder)
           .then((result) => {
-            if (result && !result.success) {
-              console.error('Email notification failed:', result.error);
+            if (result) {
+              if (result.success) {
+                console.log('✅ Email notification sent successfully');
+              } else {
+                console.error('❌ Email notification failed:', result.error);
+              }
             }
           })
           .catch((error) => {
-            console.error('Email notification error:', error);
+            console.error('❌ Email notification error:', error);
           });
       } else {
-        console.warn('Email notifications disabled. Set ENABLE_EMAIL_NOTIFICATIONS=true to enable.');
+        console.warn('⚠️ Email notifications disabled. ENABLE_EMAIL_NOTIFICATIONS is:', process.env.ENABLE_EMAIL_NOTIFICATIONS);
+        console.warn('Set ENABLE_EMAIL_NOTIFICATIONS=true in Netlify environment variables to enable.');
       }
+    } else {
+      console.log('Email not sent - customer preference is:', pref);
     }
     
     if (pref === 'sms' || pref === 'both') {

@@ -9,8 +9,12 @@ const resend = process.env.RESEND_API_KEY
   : null;
 
 export async function sendOrderConfirmationEmail(order: Order) {
+  console.log('sendOrderConfirmationEmail called for order:', order.id);
+  console.log('Resend client exists:', !!resend);
+  console.log('RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+  
   if (!resend || !process.env.RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not set, skipping email notification');
+    console.warn('❌ RESEND_API_KEY not set, skipping email notification');
     console.warn('To enable emails, set RESEND_API_KEY and ENABLE_EMAIL_NOTIFICATIONS=true in your environment variables');
     return { success: false, error: 'RESEND_API_KEY not configured' };
   }
