@@ -174,17 +174,32 @@ export async function sendOrderConfirmationSMS(order: Order) {
 
 // Helper function to format the 'from' field properly
 function formatFromEmail(fromEmail?: string, fromName?: string): string {
-  const email = fromEmail || process.env.FROM_EMAIL || 'noreply@pickmeup.com';
+  // Try to get email from various sources
+  const email = fromEmail || process.env.FROM_EMAIL;
   const name = fromName || process.env.FROM_NAME;
   
-  if (!email || !email.includes('@')) {
-    throw new Error('Invalid FROM_EMAIL: must be a valid email address');
+  // Validate email
+  if (!email || typeof email !== 'string' || !email.trim()) {
+    console.error('❌ FROM_EMAIL is missing or empty');
+    console.error('FROM_EMAIL from config:', fromEmail);
+    console.error('FROM_EMAIL from env:', process.env.FROM_EMAIL);
+    throw new Error('FROM_EMAIL environment variable is required and must be a valid email address. Please set FROM_EMAIL in Netlify environment variables.');
+  }
+  
+  const trimmedEmail = email.trim();
+  
+  // Basic email validation
+  if (!trimmedEmail.includes('@') || trimmedEmail.length < 5) {
+    console.error('❌ FROM_EMAIL is invalid:', trimmedEmail);
+    throw new Error(`Invalid FROM_EMAIL format: "${trimmedEmail}". Must be a valid email address like "noreply@yourdomain.com"`);
   }
   
   // Format: "Name <email@domain.com>" or just "email@domain.com"
-  return name && name.trim() 
-    ? `${name.trim()} <${email.trim()}>`
-    : email.trim();
+  if (name && name.trim()) {
+    return `${name.trim()} <${trimmedEmail}>`;
+  }
+  
+  return trimmedEmail;
 }
 
 // Status change notification (email)
